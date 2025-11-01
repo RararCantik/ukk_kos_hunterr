@@ -22,24 +22,19 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'kos_app.db');
     return await openDatabase(
       path,
-      version: 2, // <-- NAIKKAN VERSI KE 2
+      version: 2, 
       onCreate: _onCreate,
-      onUpgrade: _onUpgrade, // <-- TAMBAHKAN FUNGSI UPGRADE
+      onUpgrade: _onUpgrade, 
       onConfigure: _onConfigure,
     );
   }
   
-  // --- FUNGSI BARU UNTUK UPGRADE ---
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // Perubahan dari v1 ke v2:
-      // Menambah kolom 'owner_reply' di tabel 'reviews'
       await db.execute('ALTER TABLE reviews ADD COLUMN owner_reply TEXT');
     }
   }
-  // ---------------------------------
-
-  // --- Mengaktifkan Foreign Keys ---
+  
   Future<void> _onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
   }
@@ -287,7 +282,7 @@ class DatabaseHelper {
     return await db.delete('reviews', where: 'id = ?', whereArgs: [id]);
   }
 
-  // --- FUNGSI BARU UNTUK BALASAN OWNER ---
+  // -balasan owner
   Future<int> updateOwnerReply(int reviewId, String reply) async {
     final db = await database;
     return await db.update(
@@ -297,7 +292,6 @@ class DatabaseHelper {
       whereArgs: [reviewId],
     );
   }
-  // --------------------------------------
   
   // --- CRUD: books (Bookings) ---
   
@@ -313,7 +307,7 @@ class DatabaseHelper {
     return await db.query('books', where: 'user_id = ?', whereArgs: [userId]);
   }
 
-  // Read (by owner_id, via join) - FUNGSI INI MASIH DIPAKAI? (Tidak dipakai di controller)
+  // Read (by owner_id, via join) 
   Future<List<Map<String, dynamic>>> getBookingsForOwner(int ownerUserId) async {
     final db = await database;
     return await db.rawQuery('''

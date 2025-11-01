@@ -102,6 +102,26 @@ class DetailKostController extends ChangeNotifier {
     }
   }
 
+  // --- FUNGSI BALASAN OWNER ---
+  Future<bool> addOwnerReply(int reviewId, String reply, int kostId) async {
+    _setLoading(true);
+    _setErrorMessage(null);
+
+    try {
+      await _dbHelper.updateOwnerReply(reviewId, reply);
+
+      // Jika sukses, panggil ulang _fetchReviews agar UI terupdate
+      await _fetchReviews(kostId);
+
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _setErrorMessage(e.toString());
+      _setLoading(false);
+      return false;
+    }
+  }
+
   void _setLoading(bool val) {
     _loading = val;
     notifyListeners();

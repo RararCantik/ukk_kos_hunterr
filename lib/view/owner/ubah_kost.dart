@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../controller/auth_controller.dart';
+import '../../controller/detail_kost_controller.dart';
 import '../../controller/owner_kost_controller.dart';
 import '../../models/kost_composite_model.dart';
 
@@ -41,6 +42,12 @@ class _UbahKostPageState extends State<UbahKostPage> {
     _selectedGender = kost.gender ?? 'all';
     _imagePaths = widget.kostComposite.images.map((img) => img.file).toList();
     _facilities = widget.kostComposite.facilities.map((fac) => fac.facility).toList();
+
+    // Ambil data review
+    Future.microtask(() {
+      Provider.of<DetailKostController>(context, listen: false)
+          .fetchDetail(widget.kostComposite.kost.id!);
+    });
   }
 
   Future<void> _pickImage() async {
@@ -73,14 +80,14 @@ class _UbahKostPageState extends State<UbahKostPage> {
     final ctrl = Provider.of<OwnerKostController>(context, listen: false);
 
     bool sukses = await ctrl.saveKost(
-      kostId: widget.kostComposite.kost.id, // <-- PENTING: ID menandakan 'ubah'
+      kostId: widget.kostComposite.kost.id, 
       ownerId: auth.userId!,
       name: _namaCtrl.text,
       address: _alamatCtrl.text,
       price: int.parse(_hargaCtrl.text),
       gender: _selectedGender,
       facilities: _facilities,
-      imagePaths: _imagePaths, // Kirim semua path
+      imagePaths: _imagePaths, 
     );
 
     if (mounted) {
@@ -100,6 +107,7 @@ class _UbahKostPageState extends State<UbahKostPage> {
   @override
   Widget build(BuildContext context) {
     final ctrl = Provider.of<OwnerKostController>(context);
+    final detailCtrl = Provider.of<DetailKostController>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -183,6 +191,15 @@ class _UbahKostPageState extends State<UbahKostPage> {
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, padding: const EdgeInsets.symmetric(vertical: 14)),
                     child: const Text('Simpan Perubahan', style: TextStyle(fontSize: 16)),
                   ),
+
+                  // review kost
+                  const Divider(height: 40, thickness: 1),
+                  const Text('Ulasan & Komentar',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  _buildReviewList(detailCtrl),
+
                 ],
               ),
             ),
@@ -248,6 +265,116 @@ class _UbahKostPageState extends State<UbahKostPage> {
           label: const Text('Tambah Foto'),
         ),
       ],
+    );
+  }
+
+  // review
+  Widget _buildReviewList(DetailKostController ctrl) {
+    if (ctrl.loading && ctrl.reviews.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (ctrl.reviews.isEmpty) {
+      return const Center(child: Text('Belum ada ulasan.'));
+    }
+
+    return ListView.builder(
+      shrinkWrap: true, // Penting di dalam ListView lain
+      physics: const NeverScrollableScrollPhysics(), // Penting
+      itemCount: ctrl.reviews.length,
+      itemBuilder: (context, index) {
+        final review = ctrl.reviews[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          elevation: 1,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.person_pin),
+                  title: Text(review.userName,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(review.comment),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                if (review.ownerReply != null && review.ownerReply!.isNotEmpty)
+                  // Tampilkan balasan yang sudah ada
+                  Padding(
+                    padding: const EdgeInsets.only(
+                        left: 40.0, top: 8.0, bottom: 8.0, right: 8.0),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Balasan Anda:",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          Text(review.ownerReply!),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Tombol Balas (jika belum dibalas)
+                if (review.ownerReply == null || review.ownerReply!.isEmpty)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => _showReplyDialog(ctrl, review.id),
+                      child: const Text('Balas Komentar'),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // --- DIALOG UNTUK MENGISI BALASAN ---
+  void _showReplyDialog(DetailKostController ctrl, int reviewId) {
+    final replyController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Beri Balasan'),
+        content: TextField(
+          controller: replyController,
+          decoration: const InputDecoration(hintText: 'Tulis balasan Anda...'),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (replyController.text.isEmpty) return;
+
+              // Panggil controller
+              await ctrl.addOwnerReply(
+                  reviewId,
+                  replyController.text,
+                  widget.kostComposite.kost
+                      .id! // Kirim kostId untuk refresh
+                  );
+
+              // ignore: use_build_context_synchronously
+              Navigator.pop(ctx); // Tutup dialog
+            },
+            child: const Text('Kirim Balasan'),
+          ),
+        ],
+      ),
     );
   }
 }

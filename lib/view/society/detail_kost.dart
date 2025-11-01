@@ -261,14 +261,65 @@ class _DetailKostPageState extends State<DetailKostPage> {
                     padding: EdgeInsets.all(16.0),
                     child: Text('Belum ada ulasan'),
                   )),
-                ...ctrl.reviews.map((ReviewCompositeModel review) => ListTile(
-                      leading: const Icon(Icons.person_pin),
-                      title: Text(review.userName),
-                      subtitle: Text(review.comment),
-                    )),
+                  //tampilan review
+                ...ctrl.reviews.map((ReviewCompositeModel review) {
+                  return Card(
+                    // Gunakan Card agar lebih rapi
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    elevation: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.person_pin,
+                                color: Colors.blueAccent),
+                            title: Text(review.userName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                            subtitle: Text(review.comment),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          // --- TAMBAHAN UNTUK BALASAN OWNER ---
+                          if (review.ownerReply != null &&
+                              review.ownerReply!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 40.0,
+                                  top: 8.0,
+                                  bottom: 8.0,
+                                  right: 8.0),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12.0),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey[300]!)
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text("Balasan Owner:",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.indigo)),
+                                    const SizedBox(height: 4),
+                                    Text(review.ownerReply!),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                      ),
+                    ),
+                  );
+                }),
               ],
             ),
           ),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -286,7 +337,6 @@ class _DetailKostPageState extends State<DetailKostPage> {
     }
 
     // Tampilkan gambar pertama
-    // Untuk slider, Anda perlu PageView.builder
     final imagePath = composite.images.first.file;
     return Image.file(
       File(imagePath),
