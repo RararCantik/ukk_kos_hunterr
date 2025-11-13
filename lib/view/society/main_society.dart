@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../controller/auth_controller.dart';
+import '../../controller/booking_controller.dart';
 import 'beranda_society.dart';
 import 'history_society.dart';
 import 'profil_society.dart';
@@ -21,6 +24,15 @@ class _MainSocietyState extends State<MainSociety> {
   ];
 
   void _onItemTapped(int index) {
+    
+    if (index == 1) {
+      final auth = Provider.of<AuthController>(context, listen: false);
+      if (auth.userId != null) {
+        Provider.of<BookingController>(context, listen: false)
+            .fetchSocietyHistory(auth.userId!);
+      }
+    }
+    
     setState(() {
       _selectedIndex = index;
     });
